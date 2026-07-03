@@ -1,4 +1,12 @@
 import { Link } from 'react-router-dom';
+import { marked } from 'marked';
+
+const stripHtml = (markdownText) => {
+  if (!markdownText) return '';
+  const html = marked.parse(markdownText);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || "";
+};
 
 const COLORS = [
   'from-violet-500 to-purple-600',
@@ -34,7 +42,7 @@ const BlogList = ({ blogs }) => {
               {/* Excerpt */}
               {blog.body && (
                 <p className="text-slate-500 text-sm leading-relaxed mb-4 flex-1 line-clamp-2">
-                  {blog.body}
+                  {stripHtml(blog.body)}
                 </p>
               )}
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBlogs } from './blogStore';
+import { getBlogs } from './api';
 
 const useFetch = () => {
   const [data, setData] = useState(null);
@@ -7,15 +7,24 @@ const useFetch = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    try {
-      const blogs = getBlogs();
-      setData(blogs);
-      setError(null);
-    } catch (err) {
-      setError('Could not load blogs.');
-    } finally {
-      setPending(false);
-    }
+    let cancelled = false;
+    setPending(true);
+
+    getBlogs()
+      .then((blogs) => {
+        if (!cancelled) {
+          setData(blogs);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || 'Could not load blogs.');
+      })
+      .finally(() => {
+        if (!cancelled) setPending(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   return { data, isPending, error };

@@ -1,27 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getBlogById, deleteBlog } from './blogStore';
+import { getBlogById, deleteBlog } from './api';
+import { useAuth } from './AuthContext';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
+import 'react-quill/dist/quill.snow.css';
 
 const BlogDetail = () => {
   const { id } = useParams();
   const [blog, setBlog] = useState(null);
   const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    const found = getBlogById(id);
-    if (found) {
-      setBlog(found);
-    } else {
-      setError('Blog not found.');
-    }
+    let cancelled = false;
+    getBlogById(id)
+      .then((data) => { if (!cancelled) setBlog(data); })
+      .catch((err) => { if (!cancelled) setError(err.message || 'Blog not found.'); });
+    return () => { cancelled = true; };
   }, [id]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this article?')) return;
-    deleteBlog(blog.id);
-    navigate('/');
+    setDeleting(true);
+    try {
+      await deleteBlog(id, user.token);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Could not delete blog.');
+      setDeleting(false);
+    }
   };
+
+  // Can delete only if logged in and the blog belongs to them
+  const canDelete = user && blog && blog.createdBy?._id === user._id;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -35,11 +49,27 @@ const BlogDetail = () => {
         </div>
       )}
 
+      {/* Loading skeleton */}
+      {!blog && !error && (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm animate-pulse">
+          <div className="h-1.5 bg-gradient-to-r from-violet-300 to-indigo-300" />
+          <div className="p-8 sm:p-12 space-y-4">
+            <div className="h-8 bg-slate-100 rounded-lg w-3/4" />
+            <div className="h-4 bg-slate-100 rounded w-1/4" />
+            <div className="space-y-2 pt-6">
+              <div className="h-3 bg-slate-100 rounded" />
+              <div className="h-3 bg-slate-100 rounded" />
+              <div className="h-3 bg-slate-100 rounded w-4/5" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Blog Content */}
       {blog && (
         <article className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           {/* Gradient Header Bar */}
-          <div className="h-1.5 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600"></div>
+          <div className="h-1.5 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-600" />
 
           <div className="p-8 sm:p-12">
             {/* Back Button */}
@@ -65,27 +95,39 @@ const BlogDetail = () => {
               </div>
               <div>
                 <p className="font-semibold text-slate-800 capitalize">{blog.author}</p>
-                <p className="text-xs text-slate-400">Author</p>
+                <p className="text-xs text-slate-400">
+                  {blog.createdAt
+                    ? new Date(blog.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                      })
+                    : 'Author'}
+                </p>
               </div>
             </div>
 
             {/* Body */}
-            <div className="text-slate-700 text-base leading-8 whitespace-pre-wrap mb-12">
-              {blog.body}
+            <div className="text-slate-700 text-base leading-8 mb-12 ql-snow">
+              <div 
+                className="ql-editor p-0"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(blog.body || '')) }} 
+              />
             </div>
 
-            {/* Delete */}
-            <div className="pt-8 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={handleDelete}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 font-semibold text-sm transition-all duration-200"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete Article
-              </button>
-            </div>
+            {/* Delete — only visible to the author */}
+            {canDelete && (
+              <div className="pt-8 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600 font-semibold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  {deleting ? 'Deleting…' : 'Delete Article'}
+                </button>
+              </div>
+            )}
           </div>
         </article>
       )}
