@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getBlogById, deleteBlog } from './api';
-import { useAuth } from './AuthContext';
+import { getBlogById, deleteBlog } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import 'react-quill/dist/quill.snow.css';

@@ -1,11 +1,11 @@
-import Navbar from './NavBar';
-import Home from './HomePage';
-import Create from './Create';
-import BlogDetail from './BlogDetail';
-import Login from './Login';
-import Register from './Register';
-import { AuthProvider } from './AuthContext';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/NavBar';
+import Home from './pages/HomePage';
+import Create from './pages/Create';
+import BlogDetail from './pages/BlogDetail';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import { AuthProvider } from './context/AuthContext';
 import './index.css';
 
 function App() {

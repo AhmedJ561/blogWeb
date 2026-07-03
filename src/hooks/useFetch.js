@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBlogs } from './api';
+import { getBlogs } from '../services/api';
 
 const useFetch = () => {
   const [data, setData] = useState(null);
