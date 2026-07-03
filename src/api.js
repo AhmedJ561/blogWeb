@@ -1,6 +1,6 @@
 // api.js — centralised API service (replaces localStorage blogStore)
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://blog-web-server-t82k.vercel.app/api';
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 const authHeaders = (token) => ({
